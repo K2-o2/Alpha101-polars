@@ -37,7 +37,12 @@ def test_rank_alias_is_cross_sectional() -> None:
     frame = pl.DataFrame(
         {
             "symbol": ["a", "b", "a", "b"],
-            "date": [date(2024, 1, 1), date(2024, 1, 1), date(2024, 1, 2), date(2024, 1, 2)],
+            "date": [
+                date(2024, 1, 1),
+                date(2024, 1, 1),
+                date(2024, 1, 2),
+                date(2024, 1, 2),
+            ],
             "close": [1.0, 2.0, 4.0, 3.0],
         }
     )
@@ -90,4 +95,9 @@ def test_decay_linear_uses_recent_values_more_heavily() -> None:
 
     result = frame.with_columns(decay_linear("x", 3).alias("decayed"))
 
-    assert result["decayed"].to_list() == [None, None, (1 + 4 + 9) / 6, (2 + 6 + 12) / 6]
+    assert result["decayed"].to_list() == [
+        None,
+        None,
+        (1 + 4 + 9) / 6,
+        (2 + 6 + 12) / 6,
+    ]

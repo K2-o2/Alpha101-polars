@@ -6,7 +6,6 @@ import pytest
 import alpha101
 from alpha101 import alpha_names, compute_alphas
 
-
 UNSUPPORTED_ALPHA_NUMBERS = {
     48,
     56,
@@ -45,9 +44,14 @@ def sample_frame() -> pl.DataFrame:
                     "high": max(open_, close) + 0.2,
                     "low": min(open_, close) - 0.3,
                     "close": close,
-                    "volume": 1000.0 + symbol_idx * 100 + day * (8 + symbol_idx) + (day % 3) * 17,
+                    "volume": 1000.0
+                    + symbol_idx * 100
+                    + day * (8 + symbol_idx)
+                    + (day % 3) * 17,
                     "vwap": (open_ + close) / 2,
-                    "returns": None if day == 0 else 0.005 + symbol_idx * 0.001 + wave * 0.01,
+                    "returns": (
+                        None if day == 0 else 0.005 + symbol_idx * 0.001 + wave * 0.01
+                    ),
                 }
             )
     return pl.DataFrame(rows)
@@ -68,9 +72,14 @@ def long_sample_frame() -> pl.DataFrame:
                     "high": max(open_, close) + 0.2 + 0.01 * symbol_idx,
                     "low": min(open_, close) - 0.3 - 0.005 * symbol_idx,
                     "close": close,
-                    "volume": 1000.0 + symbol_idx * 100 + day * (8 + symbol_idx) + (day % 5) * 19,
+                    "volume": 1000.0
+                    + symbol_idx * 100
+                    + day * (8 + symbol_idx)
+                    + (day % 5) * 19,
                     "vwap": (open_ + close) / 2,
-                    "returns": None if day == 0 else 0.004 + symbol_idx * 0.001 + wave * 0.01,
+                    "returns": (
+                        None if day == 0 else 0.004 + symbol_idx * 0.001 + wave * 0.01
+                    ),
                 }
             )
     return pl.DataFrame(rows)
@@ -90,7 +99,9 @@ def test_compute_all_registered_alphas() -> None:
 
 
 def supported_alpha_names() -> list[str]:
-    return [f"alpha{i:03d}" for i in range(1, 102) if i not in UNSUPPORTED_ALPHA_NUMBERS]
+    return [
+        f"alpha{i:03d}" for i in range(1, 102) if i not in UNSUPPORTED_ALPHA_NUMBERS
+    ]
 
 
 def test_supported_alpha001_through_alpha101_are_registered() -> None:
@@ -112,8 +123,12 @@ def test_alpha021_through_alpha030_compute_without_non_finite_values() -> None:
 
     assert set(names).issubset(result.columns)
     assert not any(column.startswith("__alpha") for column in result.columns)
-    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (0,) * len(names)
-    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(0) == (0,) * len(names)
+    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (
+        0,
+    ) * len(names)
+    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(
+        0
+    ) == (0,) * len(names)
 
 
 def test_alpha031_through_alpha040_compute_without_non_finite_values() -> None:
@@ -122,8 +137,12 @@ def test_alpha031_through_alpha040_compute_without_non_finite_values() -> None:
 
     assert set(names).issubset(result.columns)
     assert not any(column.startswith("__alpha") for column in result.columns)
-    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (0,) * len(names)
-    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(0) == (0,) * len(names)
+    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (
+        0,
+    ) * len(names)
+    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(
+        0
+    ) == (0,) * len(names)
 
 
 def test_alpha041_through_alpha050_compute_without_non_finite_values() -> None:
@@ -132,28 +151,44 @@ def test_alpha041_through_alpha050_compute_without_non_finite_values() -> None:
 
     assert set(names).issubset(result.columns)
     assert not any(column.startswith("__alpha") for column in result.columns)
-    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (0,) * len(names)
-    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(0) == (0,) * len(names)
+    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (
+        0,
+    ) * len(names)
+    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(
+        0
+    ) == (0,) * len(names)
 
 
 def test_alpha051_through_alpha060_compute_without_non_finite_values() -> None:
-    names = [f"alpha{i:03d}" for i in range(51, 61) if i not in UNSUPPORTED_ALPHA_NUMBERS]
+    names = [
+        f"alpha{i:03d}" for i in range(51, 61) if i not in UNSUPPORTED_ALPHA_NUMBERS
+    ]
     result = compute_alphas(long_sample_frame(), names=names)
 
     assert set(names).issubset(result.columns)
     assert not any(column.startswith("__alpha") for column in result.columns)
-    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (0,) * len(names)
-    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(0) == (0,) * len(names)
+    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (
+        0,
+    ) * len(names)
+    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(
+        0
+    ) == (0,) * len(names)
 
 
 def test_alpha061_through_alpha101_compute_without_non_finite_values() -> None:
-    names = [f"alpha{i:03d}" for i in range(61, 102) if i not in UNSUPPORTED_ALPHA_NUMBERS]
+    names = [
+        f"alpha{i:03d}" for i in range(61, 102) if i not in UNSUPPORTED_ALPHA_NUMBERS
+    ]
     result = compute_alphas(long_sample_frame(), names=names)
 
     assert set(names).issubset(result.columns)
     assert not any(column.startswith("__alpha") for column in result.columns)
-    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (0,) * len(names)
-    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(0) == (0,) * len(names)
+    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (
+        0,
+    ) * len(names)
+    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(
+        0
+    ) == (0,) * len(names)
 
 
 def test_compute_alphas_does_not_leak_temporary_columns() -> None:

@@ -53,7 +53,9 @@ def _download_one(
     frame = frame.rename(lower_names)
 
     if "date" not in frame.columns:
-        raise ValueError(f"AkShare response for {symbol} does not include a date column")
+        raise ValueError(
+            f"AkShare response for {symbol} does not include a date column"
+        )
 
     frame = frame.with_columns(
         pl.lit(symbol).alias(schema.SYMBOL),
@@ -62,7 +64,9 @@ def _download_one(
 
     if "vwap" not in frame.columns:
         if "amount" not in frame.columns:
-            raise ValueError(f"AkShare response for {symbol} does not include amount for vwap")
+            raise ValueError(
+                f"AkShare response for {symbol} does not include amount for vwap"
+            )
         frame = frame.with_columns(
             pl.when(pl.col(schema.VOLUME) > 0)
             .then(pl.col("amount") / pl.col(schema.VOLUME))
@@ -98,7 +102,9 @@ def load_akshare_daily(
     adjust: str = "hfq",
 ) -> pl.DataFrame:
     selected = symbols or sample_symbols()
-    frames = [_download_one(symbol, start_date, end_date, adjust) for symbol in selected]
+    frames = [
+        _download_one(symbol, start_date, end_date, adjust) for symbol in selected
+    ]
     return pl.concat(frames, how="vertical").sort([schema.SYMBOL, schema.DATE])
 
 
@@ -111,6 +117,8 @@ def save_sample_daily(
 ) -> Path:
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    frame = load_akshare_daily(symbols=symbols, start_date=start_date, end_date=end_date, adjust=adjust)
+    frame = load_akshare_daily(
+        symbols=symbols, start_date=start_date, end_date=end_date, adjust=adjust
+    )
     frame.write_parquet(path)
     return path

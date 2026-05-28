@@ -16,9 +16,18 @@ def parse_args() -> argparse.Namespace:
         default="data/raw/akshare_a_daily_hfq_2020_2025.parquet",
         help="Output parquet path.",
     )
-    parser.add_argument("--start-date", default="20200101", help="Start date in YYYYMMDD format.")
-    parser.add_argument("--end-date", default="20251231", help="End date in YYYYMMDD format.")
-    parser.add_argument("--adjust", default="hfq", choices=["", "qfq", "hfq"], help="AkShare adjust mode.")
+    parser.add_argument(
+        "--start-date", default="20200101", help="Start date in YYYYMMDD format."
+    )
+    parser.add_argument(
+        "--end-date", default="20251231", help="End date in YYYYMMDD format."
+    )
+    parser.add_argument(
+        "--adjust",
+        default="hfq",
+        choices=["", "qfq", "hfq"],
+        help="AkShare adjust mode.",
+    )
     parser.add_argument(
         "--symbol",
         action="append",

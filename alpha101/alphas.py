@@ -1319,14 +1319,21 @@ def alpha047() -> AlphaFactor:
             ),
             (
                 rank(1 / pl.col(schema.CLOSE)).alias(ranked_inverse_close),
-                rank(pl.col(schema.HIGH) - pl.col(schema.CLOSE)).alias(ranked_high_close),
-                rank(pl.col(schema.VWAP) - pl.col(delayed_vwap)).alias(ranked_vwap_delta),
+                rank(pl.col(schema.HIGH) - pl.col(schema.CLOSE)).alias(
+                    ranked_high_close
+                ),
+                rank(pl.col(schema.VWAP) - pl.col(delayed_vwap)).alias(
+                    ranked_vwap_delta
+                ),
             ),
         ),
         expr=(
             (
                 (pl.col(ranked_inverse_close) * pl.col(schema.VOLUME) / pl.col(adv20))
-                * ((pl.col(schema.HIGH) * pl.col(ranked_high_close)) / pl.col(high_mean_5))
+                * (
+                    (pl.col(schema.HIGH) * pl.col(ranked_high_close))
+                    / pl.col(high_mean_5)
+                )
             )
             - pl.col(ranked_vwap_delta)
         ),
@@ -1346,7 +1353,9 @@ def alpha048() -> AlphaFactor:
     #             * delta(close, 1)) / close), IndClass.subindustry)
     #             / sum(((delta(close, 1) / delay(close, 1))^2), 250))
     # Requires IndNeutralize (subindustry classification); not implemented.
-    raise NotImplementedError("alpha048 requires IndNeutralize (subindustry classification)")
+    raise NotImplementedError(
+        "alpha048 requires IndNeutralize (subindustry classification)"
+    )
 
 
 def alpha049() -> AlphaFactor:
@@ -1389,13 +1398,22 @@ def alpha050() -> AlphaFactor:
     return AlphaFactor(
         name="alpha050",
         stages=(
-            (rank(schema.VOLUME).alias(ranked_volume), rank(schema.VWAP).alias(ranked_vwap)),
+            (
+                rank(schema.VOLUME).alias(ranked_volume),
+                rank(schema.VWAP).alias(ranked_vwap),
+            ),
             (ts_corr(ranked_volume, ranked_vwap, 5).alias(corr),),
             (rank(corr).alias(ranked_corr),),
             (ts_max(ranked_corr, 5).alias(max_ranked_corr),),
         ),
         expr=-pl.col(max_ranked_corr),
-        temporary_columns=(ranked_volume, ranked_vwap, corr, ranked_corr, max_ranked_corr),
+        temporary_columns=(
+            ranked_volume,
+            ranked_vwap,
+            corr,
+            ranked_corr,
+            max_ranked_corr,
+        ),
     )
 
 
@@ -1450,7 +1468,9 @@ def alpha052() -> AlphaFactor:
             ),
             (
                 delay(low_min, 5).alias(delayed_low_min),
-                ((pl.col(returns_sum_240) - pl.col(returns_sum_20)) / 220).alias(returns_diff_mean),
+                ((pl.col(returns_sum_240) - pl.col(returns_sum_20)) / 220).alias(
+                    returns_diff_mean
+                ),
             ),
             (rank(returns_diff_mean).alias(ranked_returns_diff_mean),),
         ),
@@ -1475,14 +1495,17 @@ def alpha053() -> AlphaFactor:
     # Alpha#053: (-1 * delta((((close - low) - (high - close)) / (close - low)), 9))
     value = _tmp("alpha053", "value")
     raw_value = (
-        ((pl.col(schema.CLOSE) - pl.col(schema.LOW)) - (pl.col(schema.HIGH) - pl.col(schema.CLOSE)))
-        / (pl.col(schema.CLOSE) - pl.col(schema.LOW))
-    )
+        (pl.col(schema.CLOSE) - pl.col(schema.LOW))
+        - (pl.col(schema.HIGH) - pl.col(schema.CLOSE))
+    ) / (pl.col(schema.CLOSE) - pl.col(schema.LOW))
     return AlphaFactor(
         name="alpha053",
         stages=(
             (
-                pl.when(raw_value.is_finite()).then(raw_value).otherwise(None).alias(value),
+                pl.when(raw_value.is_finite())
+                .then(raw_value)
+                .otherwise(None)
+                .alias(value),
             ),
         ),
         expr=-delta(value, 9),
@@ -1493,9 +1516,8 @@ def alpha053() -> AlphaFactor:
 def alpha054() -> AlphaFactor:
     # Alpha#054: ((-1 * ((low - close) * (open^5))) / ((low - high) * (close^5)))
     raw_value = (
-        (-(pl.col(schema.LOW) - pl.col(schema.CLOSE)) * pl.col(schema.OPEN).pow(5))
-        / ((pl.col(schema.LOW) - pl.col(schema.HIGH)) * pl.col(schema.CLOSE).pow(5))
-    )
+        -(pl.col(schema.LOW) - pl.col(schema.CLOSE)) * pl.col(schema.OPEN).pow(5)
+    ) / ((pl.col(schema.LOW) - pl.col(schema.HIGH)) * pl.col(schema.CLOSE).pow(5))
     return AlphaFactor(
         name="alpha054",
         stages=(),
@@ -1530,7 +1552,13 @@ def alpha055() -> AlphaFactor:
             ),
         ),
         expr=-ts_corr(ranked_price_position, ranked_volume, 6),
-        temporary_columns=(low_min, high_max, price_position, ranked_price_position, ranked_volume),
+        temporary_columns=(
+            low_min,
+            high_max,
+            price_position,
+            ranked_price_position,
+            ranked_volume,
+        ),
     )
 
 
@@ -1570,7 +1598,9 @@ def alpha059() -> AlphaFactor:
     #             IndNeutralize(((vwap * 0.728317) + (vwap * (1 - 0.728317))), IndClass.industry),
     #             volume, 4.25197), 16.2289), 8.19648))
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha059 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha059 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha060() -> AlphaFactor:
@@ -1588,7 +1618,10 @@ def alpha060() -> AlphaFactor:
             (
                 (
                     (
-                        ((pl.col(schema.CLOSE) - pl.col(schema.LOW)) - (pl.col(schema.HIGH) - pl.col(schema.CLOSE)))
+                        (
+                            (pl.col(schema.CLOSE) - pl.col(schema.LOW))
+                            - (pl.col(schema.HIGH) - pl.col(schema.CLOSE))
+                        )
                         / (pl.col(schema.HIGH) - pl.col(schema.LOW))
                     )
                     * pl.col(schema.VOLUME)
@@ -1674,9 +1707,15 @@ def alpha062() -> AlphaFactor:
         ),
         expr=-((pl.col(rank_corr) < pl.col(rank_inner_bool)).cast(pl.Float64)),
         temporary_columns=(
-            adv20, sum_adv20, corr, rank_corr,
-            rank_open, rank_hl_avg, rank_high,
-            inner_bool, rank_inner_bool,
+            adv20,
+            sum_adv20,
+            corr,
+            rank_corr,
+            rank_open,
+            rank_hl_avg,
+            rank_high,
+            inner_bool,
+            rank_inner_bool,
         ),
     )
 
@@ -1686,7 +1725,9 @@ def alpha063() -> AlphaFactor:
     #             - rank(decay_linear(correlation(((vwap * 0.318108) + (open * (1 - 0.318108))),
     #             sum(adv180, 37.2467), 13.557), 12.2883))) * -1)
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha063 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha063 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha064() -> AlphaFactor:
@@ -1706,9 +1747,9 @@ def alpha064() -> AlphaFactor:
         name="alpha064",
         stages=(
             (
-                (pl.col(schema.OPEN) * 0.178404 + pl.col(schema.LOW) * (1 - 0.178404)).alias(
-                    weighted_price_1
-                ),
+                (
+                    pl.col(schema.OPEN) * 0.178404 + pl.col(schema.LOW) * (1 - 0.178404)
+                ).alias(weighted_price_1),
                 ts_mean(schema.VOLUME, 120).alias(adv120),
                 (
                     ((pl.col(schema.HIGH) + pl.col(schema.LOW)) / 2) * 0.178404
@@ -1728,8 +1769,15 @@ def alpha064() -> AlphaFactor:
         ),
         expr=-((pl.col(rank_corr) < pl.col(rank_delta)).cast(pl.Float64)),
         temporary_columns=(
-            weighted_price_1, adv120, sum_wp1, sum_adv120,
-            corr, rank_corr, weighted_price_2, delta_wp2, rank_delta,
+            weighted_price_1,
+            adv120,
+            sum_wp1,
+            sum_adv120,
+            corr,
+            rank_corr,
+            weighted_price_2,
+            delta_wp2,
+            rank_delta,
         ),
     )
 
@@ -1748,9 +1796,10 @@ def alpha065() -> AlphaFactor:
         name="alpha065",
         stages=(
             (
-                (pl.col(schema.OPEN) * 0.00817205 + pl.col(schema.VWAP) * (1 - 0.00817205)).alias(
-                    weighted_price
-                ),
+                (
+                    pl.col(schema.OPEN) * 0.00817205
+                    + pl.col(schema.VWAP) * (1 - 0.00817205)
+                ).alias(weighted_price),
                 ts_mean(schema.VOLUME, 60).alias(adv60),
                 (pl.col(schema.OPEN) - ts_min(schema.OPEN, 14)).alias(open_minus_min),
             ),
@@ -1763,8 +1812,13 @@ def alpha065() -> AlphaFactor:
         ),
         expr=-((pl.col(rank_corr) < pl.col(rank_open_minus_min)).cast(pl.Float64)),
         temporary_columns=(
-            weighted_price, adv60, sum_adv60,
-            corr, rank_corr, open_minus_min, rank_open_minus_min,
+            weighted_price,
+            adv60,
+            sum_adv60,
+            corr,
+            rank_corr,
+            open_minus_min,
+            rank_open_minus_min,
         ),
     )
 
@@ -1785,20 +1839,31 @@ def alpha066() -> AlphaFactor:
                 decay_linear(delta(schema.VWAP, 4), 7).alias(decayed_vwap_delta),
                 (
                     (pl.col(schema.LOW) - pl.col(schema.VWAP))
-                    / (pl.col(schema.OPEN) - (pl.col(schema.HIGH) + pl.col(schema.LOW)) / 2)
+                    / (
+                        pl.col(schema.OPEN)
+                        - (pl.col(schema.HIGH) + pl.col(schema.LOW)) / 2
+                    )
                 ).alias(ratio),
             ),
             (
                 rank(decayed_vwap_delta).alias(rank_decayed),
                 decay_linear(
-                    pl.when(pl.col(ratio).is_finite()).then(pl.col(ratio)).otherwise(None),
+                    pl.when(pl.col(ratio).is_finite())
+                    .then(pl.col(ratio))
+                    .otherwise(None),
                     11,
                 ).alias(decayed_ratio),
             ),
             (ts_rank(decayed_ratio, 7).alias(ts_rank_ratio),),
         ),
         expr=-(pl.col(rank_decayed) + pl.col(ts_rank_ratio)),
-        temporary_columns=(decayed_vwap_delta, rank_decayed, ratio, decayed_ratio, ts_rank_ratio),
+        temporary_columns=(
+            decayed_vwap_delta,
+            rank_decayed,
+            ratio,
+            decayed_ratio,
+            ts_rank_ratio,
+        ),
     )
 
 
@@ -1807,7 +1872,9 @@ def alpha067() -> AlphaFactor:
     #             IndNeutralize(vwap, IndClass.sector), IndNeutralize(adv20, IndClass.subindustry),
     #             6.02936))) * -1)
     # Requires IndNeutralize (sector/subindustry classification); not implemented.
-    raise NotImplementedError("alpha067 requires IndNeutralize (sector/subindustry classification)")
+    raise NotImplementedError(
+        "alpha067 requires IndNeutralize (sector/subindustry classification)"
+    )
 
 
 def alpha068() -> AlphaFactor:
@@ -1828,7 +1895,8 @@ def alpha068() -> AlphaFactor:
                 ts_mean(schema.VOLUME, 15).alias(adv15),
                 rank(schema.HIGH).alias(ranked_high),
                 (
-                    pl.col(schema.CLOSE) * 0.518371 + pl.col(schema.LOW) * (1 - 0.518371)
+                    pl.col(schema.CLOSE) * 0.518371
+                    + pl.col(schema.LOW) * (1 - 0.518371)
                 ).alias(weighted_price),
             ),
             (
@@ -1841,8 +1909,14 @@ def alpha068() -> AlphaFactor:
         ),
         expr=-((pl.col(ts_rank_corr) < pl.col(rank_delta)).cast(pl.Float64)),
         temporary_columns=(
-            adv15, ranked_high, ranked_adv15,
-            corr, ts_rank_corr, weighted_price, delta_wp, rank_delta,
+            adv15,
+            ranked_high,
+            ranked_adv15,
+            corr,
+            ts_rank_corr,
+            weighted_price,
+            delta_wp,
+            rank_delta,
         ),
     )
 
@@ -1852,7 +1926,9 @@ def alpha069() -> AlphaFactor:
     #             ^Ts_Rank(correlation(((close * 0.490655) + (vwap * (1 - 0.490655))),
     #             adv20, 4.92416), 9.0615)) * -1)
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha069 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha069 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha070() -> AlphaFactor:
@@ -1860,7 +1936,9 @@ def alpha070() -> AlphaFactor:
     #             ^Ts_Rank(correlation(IndNeutralize(close, IndClass.industry),
     #             adv50, 17.8256), 17.9171)) * -1)
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha070 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha070 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha071() -> AlphaFactor:
@@ -1908,9 +1986,17 @@ def alpha071() -> AlphaFactor:
         ),
         expr=pl.max_horizontal(pl.col(left), pl.col(right)),
         temporary_columns=(
-            ts_rank_close, adv180, ts_rank_adv180,
-            corr, decayed_corr, left,
-            price_diff, ranked_price_diff, signed_power_rank, decayed_rank, right,
+            ts_rank_close,
+            adv180,
+            ts_rank_adv180,
+            corr,
+            decayed_corr,
+            left,
+            price_diff,
+            ranked_price_diff,
+            signed_power_rank,
+            decayed_rank,
+            right,
         ),
     )
 
@@ -1953,10 +2039,16 @@ def alpha072() -> AlphaFactor:
         ),
         expr=pl.col(ranked_decayed_hl) / pl.col(ranked_decayed_ranked),
         temporary_columns=(
-            hl_avg, adv40,
-            corr_hl, decayed_corr_hl, ranked_decayed_hl,
-            ts_rank_vwap, ts_rank_volume,
-            corr_ranked, decayed_corr_ranked, ranked_decayed_ranked,
+            hl_avg,
+            adv40,
+            corr_hl,
+            decayed_corr_hl,
+            ranked_decayed_hl,
+            ts_rank_vwap,
+            ts_rank_volume,
+            corr_ranked,
+            decayed_corr_ranked,
+            ranked_decayed_ranked,
         ),
     )
 
@@ -1996,8 +2088,13 @@ def alpha073() -> AlphaFactor:
         ),
         expr=-(pl.max_horizontal(pl.col(ranked_decayed), pl.col(right))),
         temporary_columns=(
-            decayed_vwap_delta, ranked_decayed,
-            wp, delta_wp, neg_ratio, decayed_ratio, right,
+            decayed_vwap_delta,
+            ranked_decayed,
+            wp,
+            delta_wp,
+            neg_ratio,
+            decayed_ratio,
+            right,
         ),
     )
 
@@ -2041,9 +2138,15 @@ def alpha074() -> AlphaFactor:
         ),
         expr=-((pl.col(rank_corr_close) < pl.col(rank_corr_ranked)).cast(pl.Float64)),
         temporary_columns=(
-            adv30, sum_adv30, corr_close, rank_corr_close,
-            weighted_price, ranked_weighted, ranked_volume,
-            corr_ranked, rank_corr_ranked,
+            adv30,
+            sum_adv30,
+            corr_close,
+            rank_corr_close,
+            weighted_price,
+            ranked_weighted,
+            ranked_volume,
+            corr_ranked,
+            rank_corr_ranked,
         ),
     )
 
@@ -2070,16 +2173,18 @@ def alpha075() -> AlphaFactor:
                 rank(schema.LOW).alias(ranked_low),
                 rank(adv50).alias(ranked_adv50),
             ),
-            (
-                ts_corr(ranked_low, ranked_adv50, 12).alias(corr_ranked),
-            ),
+            (ts_corr(ranked_low, ranked_adv50, 12).alias(corr_ranked),),
             (rank(corr_ranked).alias(rank_corr_ranked),),
         ),
         expr=(pl.col(rank_corr_vwap) < pl.col(rank_corr_ranked)).cast(pl.Float64),
         temporary_columns=(
-            corr_vwap, rank_corr_vwap,
-            adv50, ranked_low, ranked_adv50,
-            corr_ranked, rank_corr_ranked,
+            corr_vwap,
+            rank_corr_vwap,
+            adv50,
+            ranked_low,
+            ranked_adv50,
+            corr_ranked,
+            rank_corr_ranked,
         ),
     )
 
@@ -2111,8 +2216,11 @@ def alpha077() -> AlphaFactor:
                 ts_mean(schema.VOLUME, 40).alias(adv40),
             ),
             (
-                (pl.col(hl_avg) + pl.col(schema.HIGH)
-                 - (pl.col(schema.VWAP) + pl.col(schema.HIGH))).alias(price_diff),
+                (
+                    pl.col(hl_avg)
+                    + pl.col(schema.HIGH)
+                    - (pl.col(schema.VWAP) + pl.col(schema.HIGH))
+                ).alias(price_diff),
                 ts_corr(hl_avg, adv40, 3).alias(corr),
             ),
             (
@@ -2124,11 +2232,18 @@ def alpha077() -> AlphaFactor:
                 rank(decayed_corr).alias(ranked_decayed_corr),
             ),
         ),
-        expr=pl.min_horizontal(pl.col(ranked_decayed_price), pl.col(ranked_decayed_corr)),
+        expr=pl.min_horizontal(
+            pl.col(ranked_decayed_price), pl.col(ranked_decayed_corr)
+        ),
         temporary_columns=(
-            hl_avg, adv40, price_diff,
-            decayed_price, ranked_decayed_price,
-            corr, decayed_corr, ranked_decayed_corr,
+            hl_avg,
+            adv40,
+            price_diff,
+            decayed_price,
+            ranked_decayed_price,
+            corr,
+            decayed_corr,
+            ranked_decayed_corr,
         ),
     )
 
@@ -2150,9 +2265,9 @@ def alpha078() -> AlphaFactor:
         name="alpha078",
         stages=(
             (
-                (pl.col(schema.LOW) * 0.352233 + pl.col(schema.VWAP) * (1 - 0.352233)).alias(
-                    weighted_price
-                ),
+                (
+                    pl.col(schema.LOW) * 0.352233 + pl.col(schema.VWAP) * (1 - 0.352233)
+                ).alias(weighted_price),
                 ts_mean(schema.VOLUME, 40).alias(adv40),
                 rank(schema.VWAP).alias(ranked_vwap),
                 rank(schema.VOLUME).alias(ranked_volume),
@@ -2170,10 +2285,16 @@ def alpha078() -> AlphaFactor:
         ),
         expr=signed_power(ranked_corr_left, ranked_corr_right),
         temporary_columns=(
-            weighted_price, adv40, sum_wp, sum_adv40,
-            corr_left, ranked_corr_left,
-            ranked_vwap, ranked_volume,
-            corr_right, ranked_corr_right,
+            weighted_price,
+            adv40,
+            sum_wp,
+            sum_adv40,
+            corr_left,
+            ranked_corr_left,
+            ranked_vwap,
+            ranked_volume,
+            corr_right,
+            ranked_corr_right,
         ),
     )
 
@@ -2191,7 +2312,9 @@ def alpha080() -> AlphaFactor:
     #             IndClass.industry), 4.04545)))^Ts_Rank(correlation(high, adv10, 5.11456),
     #             5.53756)) * -1)
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha080 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha080 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha081() -> AlphaFactor:
@@ -2240,9 +2363,19 @@ def alpha081() -> AlphaFactor:
         ),
         expr=-((pl.col(rank_log) < pl.col(rank_corr_right)).cast(pl.Float64)),
         temporary_columns=(
-            adv10, sum_adv10, corr, ranked_corr,
-            signed_power_rank, rank_of_power, product_val, log_product, rank_log,
-            ranked_vwap, ranked_volume, corr_right, rank_corr_right,
+            adv10,
+            sum_adv10,
+            corr,
+            ranked_corr,
+            signed_power_rank,
+            rank_of_power,
+            product_val,
+            log_product,
+            rank_log,
+            ranked_vwap,
+            ranked_volume,
+            corr_right,
+            rank_corr_right,
         ),
     )
 
@@ -2287,26 +2420,29 @@ def alpha083() -> AlphaFactor:
             ),
             (
                 rank(delayed_rom).alias(ranked_delayed),
-                pl.when(
-                    (pl.col(schema.VWAP) - pl.col(schema.CLOSE)).abs() > 0
+                pl.when((pl.col(schema.VWAP) - pl.col(schema.CLOSE)).abs() > 0)
+                .then(
+                    pl.col(range_over_mean)
+                    / (pl.col(schema.VWAP) - pl.col(schema.CLOSE))
                 )
-                .then(pl.col(range_over_mean) / (pl.col(schema.VWAP) - pl.col(schema.CLOSE)))
                 .otherwise(None)
                 .alias(denominator),
             ),
-            (
-                (pl.col(ranked_delayed) * pl.col(ranked_ranked_volume)).alias(numerator),
-            ),
+            ((pl.col(ranked_delayed) * pl.col(ranked_ranked_volume)).alias(numerator),),
         ),
-        expr=pl.when(
-            pl.col(denominator).is_finite() & pl.col(denominator).abs().gt(0)
-        )
+        expr=pl.when(pl.col(denominator).is_finite() & pl.col(denominator).abs().gt(0))
         .then(pl.col(numerator) / pl.col(denominator))
         .otherwise(None),
         temporary_columns=(
-            hl_range, mean_close_5, range_over_mean,
-            delayed_rom, ranked_delayed, ranked_volume, ranked_ranked_volume,
-            numerator, denominator,
+            hl_range,
+            mean_close_5,
+            range_over_mean,
+            delayed_rom,
+            ranked_delayed,
+            ranked_volume,
+            ranked_ranked_volume,
+            numerator,
+            denominator,
         ),
     )
 
@@ -2328,8 +2464,7 @@ def alpha084() -> AlphaFactor:
             (ts_rank(vwap_diff, 20).alias(ts_ranked),),
         ),
         expr=(
-            pl.col(ts_ranked).sign()
-            * pl.col(ts_ranked).abs().pow(pl.col(close_delta))
+            pl.col(ts_ranked).sign() * pl.col(ts_ranked).abs().pow(pl.col(close_delta))
         ),
         temporary_columns=(vwap_max, vwap_diff, ts_ranked, close_delta),
     )
@@ -2371,14 +2506,18 @@ def alpha085() -> AlphaFactor:
             (rank(corr2).alias(rank_corr2),),
         ),
         expr=(
-            pl.col(rank_corr1).sign()
-            * pl.col(rank_corr1).abs().pow(pl.col(rank_corr2))
+            pl.col(rank_corr1).sign() * pl.col(rank_corr1).abs().pow(pl.col(rank_corr2))
         ),
         temporary_columns=(
-            weighted_price, adv30,
-            corr1, rank_corr1,
-            hl_avg, ts_rank_hl, ts_rank_vol,
-            corr2, rank_corr2,
+            weighted_price,
+            adv30,
+            corr1,
+            rank_corr1,
+            hl_avg,
+            ts_rank_hl,
+            ts_rank_vol,
+            corr2,
+            rank_corr2,
         ),
     )
 
@@ -2408,8 +2547,12 @@ def alpha086() -> AlphaFactor:
         ),
         expr=-((pl.col(ts_rank_corr) < pl.col(ranked_diff)).cast(pl.Float64)),
         temporary_columns=(
-            adv20, sum_adv20, corr, ts_rank_corr,
-            close_minus_vwap, ranked_diff,
+            adv20,
+            sum_adv20,
+            corr,
+            ts_rank_corr,
+            close_minus_vwap,
+            ranked_diff,
         ),
     )
 
@@ -2419,7 +2562,9 @@ def alpha087() -> AlphaFactor:
     #             1.91233), 2.65461)), Ts_Rank(decay_linear(abs(correlation(
     #             IndNeutralize(adv81, IndClass.industry), close, 13.4132)), 4.89768), 14.4535)) * -1)
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha087 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha087 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha088() -> AlphaFactor:
@@ -2469,10 +2614,19 @@ def alpha088() -> AlphaFactor:
         ),
         expr=pl.min_horizontal(pl.col(left), pl.col(right)),
         temporary_columns=(
-            ranked_open, ranked_low, ranked_high, ranked_close,
-            rank_diff, decayed_rank_diff, left,
-            adv60, ts_rank_close, ts_rank_adv60,
-            corr, decayed_corr, right,
+            ranked_open,
+            ranked_low,
+            ranked_high,
+            ranked_close,
+            rank_diff,
+            decayed_rank_diff,
+            left,
+            adv60,
+            ts_rank_close,
+            ts_rank_adv60,
+            corr,
+            decayed_corr,
+            right,
         ),
     )
 
@@ -2482,14 +2636,18 @@ def alpha089() -> AlphaFactor:
     #             adv10, 6.94279), 5.51607), 3.79744) - Ts_Rank(decay_linear(
     #             delta(IndNeutralize(vwap, IndClass.industry), 3.48158), 10.1466), 15.3012))
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha089 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha089 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha090() -> AlphaFactor:
     # Alpha#090: ((rank((close - ts_max(close, 4.66719)))^Ts_Rank(correlation(
     #             IndNeutralize(adv40, IndClass.subindustry), low, 5.38375), 3.21856)) * -1)
     # Requires IndNeutralize (subindustry classification); not implemented.
-    raise NotImplementedError("alpha090 requires IndNeutralize (subindustry classification)")
+    raise NotImplementedError(
+        "alpha090 requires IndNeutralize (subindustry classification)"
+    )
 
 
 def alpha091() -> AlphaFactor:
@@ -2497,7 +2655,9 @@ def alpha091() -> AlphaFactor:
     #             IndNeutralize(close, IndClass.industry), volume, 9.74928), 16.398), 3.83219), 4.8667)
     #             - rank(decay_linear(correlation(vwap, adv30, 4.01303), 2.6809))) * -1)
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha091 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha091 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha092() -> AlphaFactor:
@@ -2526,7 +2686,9 @@ def alpha092() -> AlphaFactor:
                 (
                     (pl.col(hl_avg) + pl.col(schema.CLOSE))
                     < (pl.col(schema.LOW) + pl.col(schema.OPEN))
-                ).cast(pl.Float64).alias(bool_val),
+                )
+                .cast(pl.Float64)
+                .alias(bool_val),
                 rank(adv30).alias(ranked_adv30),
             ),
             (
@@ -2541,8 +2703,16 @@ def alpha092() -> AlphaFactor:
         ),
         expr=pl.min_horizontal(pl.col(left), pl.col(right)),
         temporary_columns=(
-            hl_avg, bool_val, adv30, ranked_low, ranked_adv30,
-            decayed_bool, left, corr, decayed_corr, right,
+            hl_avg,
+            bool_val,
+            adv30,
+            ranked_low,
+            ranked_adv30,
+            decayed_bool,
+            left,
+            corr,
+            decayed_corr,
+            right,
         ),
     )
 
@@ -2552,7 +2722,9 @@ def alpha093() -> AlphaFactor:
     #             adv81, 17.4193), 19.848), 7.54455) / rank(decay_linear(
     #             delta(((close * 0.524434) + (vwap * (1 - 0.524434))), 2.77377), 16.2664)))
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha093 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha093 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha094() -> AlphaFactor:
@@ -2589,9 +2761,14 @@ def alpha094() -> AlphaFactor:
             * pl.col(ranked_diff).abs().pow(pl.col(ts_rank_corr))
         ),
         temporary_columns=(
-            vwap_min, vwap_diff, ranked_diff,
-            adv60, ts_rank_vwap, ts_rank_adv60,
-            corr, ts_rank_corr,
+            vwap_min,
+            vwap_diff,
+            ranked_diff,
+            adv60,
+            ts_rank_vwap,
+            ts_rank_adv60,
+            corr,
+            ts_rank_corr,
         ),
     )
 
@@ -2627,17 +2804,23 @@ def alpha095() -> AlphaFactor:
                 rank(open_diff).alias(ranked_open_diff),
                 ts_corr(sum_hl, sum_adv40, 13).alias(corr),
             ),
-            (
-                rank(corr).alias(ranked_corr),
-            ),
+            (rank(corr).alias(ranked_corr),),
             (signed_power(ranked_corr, 5).alias(signed_power_corr),),
             (ts_rank(signed_power_corr, 12).alias(ts_rank_power),),
         ),
         expr=(pl.col(ranked_open_diff) < pl.col(ts_rank_power)).cast(pl.Float64),
         temporary_columns=(
-            open_min, open_diff, ranked_open_diff,
-            hl_avg, adv40, sum_hl, sum_adv40,
-            corr, ranked_corr, signed_power_corr, ts_rank_power,
+            open_min,
+            open_diff,
+            ranked_open_diff,
+            hl_avg,
+            adv40,
+            sum_hl,
+            sum_adv40,
+            corr,
+            ranked_corr,
+            signed_power_corr,
+            ts_rank_power,
         ),
     )
 
@@ -2684,10 +2867,18 @@ def alpha096() -> AlphaFactor:
         ),
         expr=-(pl.max_horizontal(pl.col(left), pl.col(right))),
         temporary_columns=(
-            ranked_vwap, ranked_volume,
-            corr1, decayed_corr1, left,
-            adv60, ts_rank_close, ts_rank_adv60,
-            corr2, argmax_corr2, decayed_argmax, right,
+            ranked_vwap,
+            ranked_volume,
+            corr1,
+            decayed_corr1,
+            left,
+            adv60,
+            ts_rank_close,
+            ts_rank_adv60,
+            corr2,
+            argmax_corr2,
+            decayed_argmax,
+            right,
         ),
     )
 
@@ -2698,7 +2889,9 @@ def alpha097() -> AlphaFactor:
     #             correlation(Ts_Rank(low, 7.87871), Ts_Rank(adv60, 17.255), 4.97547), 18.5925),
     #             15.7152), 6.71659)) * -1)
     # Requires IndNeutralize (industry classification); not implemented.
-    raise NotImplementedError("alpha097 requires IndNeutralize (industry classification)")
+    raise NotImplementedError(
+        "alpha097 requires IndNeutralize (industry classification)"
+    )
 
 
 def alpha098() -> AlphaFactor:
@@ -2747,9 +2940,19 @@ def alpha098() -> AlphaFactor:
         ),
         expr=pl.col(left) - pl.col(right),
         temporary_columns=(
-            adv5, sum_adv5, corr1, decayed_corr1, left,
-            adv15, ranked_open, ranked_adv15,
-            corr2, argmin_corr2, ts_rank_argmin, decayed_rank, right,
+            adv5,
+            sum_adv5,
+            corr1,
+            decayed_corr1,
+            left,
+            adv15,
+            ranked_open,
+            ranked_adv15,
+            corr2,
+            argmin_corr2,
+            ts_rank_argmin,
+            decayed_rank,
+            right,
         ),
     )
 
@@ -2785,8 +2988,14 @@ def alpha099() -> AlphaFactor:
         ),
         expr=-((pl.col(rank_corr1) < pl.col(rank_corr2)).cast(pl.Float64)),
         temporary_columns=(
-            hl_avg, adv60, sum_hl, sum_adv60,
-            corr1, rank_corr1, corr2, rank_corr2,
+            hl_avg,
+            adv60,
+            sum_hl,
+            sum_adv60,
+            corr1,
+            rank_corr1,
+            corr2,
+            rank_corr2,
         ),
     )
 
@@ -2798,7 +3007,9 @@ def alpha100() -> AlphaFactor:
     #             (correlation(close, rank(adv20), 5) - rank(ts_argmin(close, 30))),
     #             IndClass.subindustry))) * (volume / adv20))))
     # Requires IndNeutralize (subindustry classification); not implemented.
-    raise NotImplementedError("alpha100 requires IndNeutralize (subindustry classification)")
+    raise NotImplementedError(
+        "alpha100 requires IndNeutralize (subindustry classification)"
+    )
 
 
 def alpha101() -> AlphaFactor:

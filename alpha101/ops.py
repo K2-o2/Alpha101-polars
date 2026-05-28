@@ -27,44 +27,65 @@ def delta(expr: str | pl.Expr, period: int, symbol_col: str = schema.SYMBOL) -> 
     return expr - delay(expr, period, symbol_col)
 
 
-def ts_sum(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+def ts_sum(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
     return col(expr).rolling_sum(window).over(symbol_col)
 
 
-def ts_product(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
-    return col(expr).rolling_map(lambda values: values.product(), window_size=window).over(symbol_col)
+def ts_product(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
+    return (
+        col(expr)
+        .rolling_map(lambda values: values.product(), window_size=window)
+        .over(symbol_col)
+    )
 
 
-def decay_linear(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+def decay_linear(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
     weights = list(range(1, window + 1))
     weight_sum = sum(weights)
     return (
         col(expr)
         .rolling_map(
-            lambda values: sum(value * weight for value, weight in zip(values, weights)) / weight_sum,
+            lambda values: sum(value * weight for value, weight in zip(values, weights))
+            / weight_sum,
             window_size=window,
         )
         .over(symbol_col)
     )
 
 
-def ts_mean(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+def ts_mean(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
     return col(expr).rolling_mean(window).over(symbol_col)
 
 
-def ts_std(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+def ts_std(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
     return col(expr).rolling_std(window).over(symbol_col)
 
 
-def ts_min(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+def ts_min(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
     return col(expr).rolling_min(window).over(symbol_col)
 
 
-def ts_max(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+def ts_max(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
     return col(expr).rolling_max(window).over(symbol_col)
 
 
-def ts_rank(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+def ts_rank(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
     return col(expr).rolling_rank(window, method="average").over(symbol_col)
 
 
@@ -80,7 +101,9 @@ def ts_arg_max(
     )
 
 
-def ts_argmax(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+def ts_argmax(
+    expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL
+) -> pl.Expr:
     return ts_arg_max(expr, window, symbol_col)
 
 

@@ -9,7 +9,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from alpha101 import compute_alphas
 
-
 if __name__ == "__main__":
     bars = pl.read_parquet("data/raw/akshare_a_daily_hfq_2020_2025.parquet")
     features = compute_alphas(bars)
