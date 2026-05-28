@@ -2,6 +2,8 @@
 
 [English](README.md) | 中文
 
+![Architecture](architecture.png)
+
 基于 Polars 原生实现的 WorldQuant Alpha101 因子库。
 
 项目围绕分阶段的 `polars.Expr` 管道设计。截面算子（如 `rank(x)`）按 `date` 计算，
