@@ -31,6 +31,23 @@ def ts_sum(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) ->
     return col(expr).rolling_sum(window).over(symbol_col)
 
 
+def ts_product(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+    return col(expr).rolling_map(lambda values: values.product(), window_size=window).over(symbol_col)
+
+
+def decay_linear(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
+    weights = list(range(1, window + 1))
+    weight_sum = sum(weights)
+    return (
+        col(expr)
+        .rolling_map(
+            lambda values: sum(value * weight for value, weight in zip(values, weights)) / weight_sum,
+            window_size=window,
+        )
+        .over(symbol_col)
+    )
+
+
 def ts_mean(expr: str | pl.Expr, window: int, symbol_col: str = schema.SYMBOL) -> pl.Expr:
     return col(expr).rolling_mean(window).over(symbol_col)
 

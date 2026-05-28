@@ -9,10 +9,10 @@ operators such as `correlation(x, y, d)` are evaluated per `symbol`.
 ## Status
 
 This repository currently contains the project skeleton, common Alpha101
-operators, AkShare data utilities, and 20 registered factors:
+operators, AkShare data utilities, and 40 registered factors:
 
 ```text
-alpha001-alpha020
+alpha001-alpha040
 ```
 
 More formulas can be added incrementally on top of the shared operators.
