@@ -9,10 +9,10 @@ operators such as `correlation(x, y, d)` are evaluated per `symbol`.
 ## Status
 
 This repository currently contains the project skeleton, common Alpha101
-operators, AkShare data utilities, and 40 registered factors:
+operators, AkShare data utilities, and supported factors through Alpha#60:
 
 ```text
-alpha001-alpha040
+alpha001-alpha060, excluding alpha048, alpha056, alpha058, alpha059
 ```
 
 More formulas can be added incrementally on top of the shared operators.
@@ -27,6 +27,9 @@ date, symbol, open, high, low, close, volume, vwap, returns
 
 Time-series operations are computed per `symbol`; cross-sectional ranks are
 computed per `date`.
+
+Factors that require market-cap data or industry neutralization are left
+unregistered until the required metadata is available in the schema.
 
 ## AkShare Sample Data
 

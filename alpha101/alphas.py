@@ -1089,6 +1089,502 @@ def alpha040() -> AlphaFactor:
     )
 
 
+def alpha041() -> AlphaFactor:
+    return AlphaFactor(
+        name="alpha041",
+        stages=(),
+        expr=(pl.col(schema.HIGH) * pl.col(schema.LOW)).sqrt() - pl.col(schema.VWAP),
+    )
+
+
+def alpha042() -> AlphaFactor:
+    numerator = _tmp("alpha042", "rank_vwap_close_diff")
+    denominator = _tmp("alpha042", "rank_vwap_close_sum")
+    return AlphaFactor(
+        name="alpha042",
+        stages=(
+            (
+                rank(pl.col(schema.VWAP) - pl.col(schema.CLOSE)).alias(numerator),
+                rank(pl.col(schema.VWAP) + pl.col(schema.CLOSE)).alias(denominator),
+            ),
+        ),
+        expr=pl.col(numerator) / pl.col(denominator),
+        temporary_columns=(numerator, denominator),
+    )
+
+
+def alpha043() -> AlphaFactor:
+    adv20 = _tmp("alpha043", "adv20")
+    volume_over_adv20 = _tmp("alpha043", "volume_over_adv20")
+    close_delta = _tmp("alpha043", "delta_close")
+    left = _tmp("alpha043", "ts_rank_volume_adv")
+    right = _tmp("alpha043", "ts_rank_neg_delta")
+    return AlphaFactor(
+        name="alpha043",
+        stages=(
+            (
+                ts_mean(schema.VOLUME, 20).alias(adv20),
+                delta(schema.CLOSE, 7).alias(close_delta),
+            ),
+            ((pl.col(schema.VOLUME) / pl.col(adv20)).alias(volume_over_adv20),),
+            (
+                ts_rank(volume_over_adv20, 20).alias(left),
+                ts_rank(-pl.col(close_delta), 8).alias(right),
+            ),
+        ),
+        expr=pl.col(left) * pl.col(right),
+        temporary_columns=(adv20, volume_over_adv20, close_delta, left, right),
+    )
+
+
+def alpha044() -> AlphaFactor:
+    ranked_volume = _tmp("alpha044", "rank_volume")
+    return AlphaFactor(
+        name="alpha044",
+        stages=((rank(schema.VOLUME).alias(ranked_volume),),),
+        expr=-ts_corr(schema.HIGH, ranked_volume, 5),
+        temporary_columns=(ranked_volume,),
+    )
+
+
+def alpha045() -> AlphaFactor:
+    delayed_close = _tmp("alpha045", "delay_close")
+    delayed_close_mean = _tmp("alpha045", "mean_delay_close")
+    ranked_delayed_close_mean = _tmp("alpha045", "rank_mean_delay_close")
+    close_sum_5 = _tmp("alpha045", "sum_close_5")
+    close_sum_20 = _tmp("alpha045", "sum_close_20")
+    corr_close_volume = _tmp("alpha045", "corr_close_volume")
+    corr_close_sums = _tmp("alpha045", "corr_close_sums")
+    ranked_corr_close_sums = _tmp("alpha045", "rank_corr_close_sums")
+    return AlphaFactor(
+        name="alpha045",
+        stages=(
+            (
+                delay(schema.CLOSE, 5).alias(delayed_close),
+                ts_sum(schema.CLOSE, 5).alias(close_sum_5),
+                ts_sum(schema.CLOSE, 20).alias(close_sum_20),
+                ts_corr(schema.CLOSE, schema.VOLUME, 2).alias(corr_close_volume),
+            ),
+            (
+                (ts_sum(delayed_close, 20) / 20).alias(delayed_close_mean),
+                ts_corr(close_sum_5, close_sum_20, 2).alias(corr_close_sums),
+            ),
+            (
+                rank(delayed_close_mean).alias(ranked_delayed_close_mean),
+                rank(corr_close_sums).alias(ranked_corr_close_sums),
+            ),
+        ),
+        expr=-(
+            pl.col(ranked_delayed_close_mean)
+            * pl.col(corr_close_volume)
+            * pl.col(ranked_corr_close_sums)
+        ),
+        temporary_columns=(
+            delayed_close,
+            delayed_close_mean,
+            ranked_delayed_close_mean,
+            close_sum_5,
+            close_sum_20,
+            corr_close_volume,
+            corr_close_sums,
+            ranked_corr_close_sums,
+        ),
+    )
+
+
+def alpha046() -> AlphaFactor:
+    delay_1 = _tmp("alpha046", "delay_close_1")
+    delay_10 = _tmp("alpha046", "delay_close_10")
+    delay_20 = _tmp("alpha046", "delay_close_20")
+    trend = _tmp("alpha046", "trend")
+    return AlphaFactor(
+        name="alpha046",
+        stages=(
+            (
+                delay(schema.CLOSE, 1).alias(delay_1),
+                delay(schema.CLOSE, 10).alias(delay_10),
+                delay(schema.CLOSE, 20).alias(delay_20),
+            ),
+            (
+                (
+                    ((pl.col(delay_20) - pl.col(delay_10)) / 10)
+                    - ((pl.col(delay_10) - pl.col(schema.CLOSE)) / 10)
+                ).alias(trend),
+            ),
+        ),
+        expr=pl.when(pl.col(trend) > 0.25)
+        .then(-1)
+        .when(pl.col(trend) < 0)
+        .then(1)
+        .otherwise(-(pl.col(schema.CLOSE) - pl.col(delay_1))),
+        temporary_columns=(delay_1, delay_10, delay_20, trend),
+    )
+
+
+def alpha047() -> AlphaFactor:
+    adv20 = _tmp("alpha047", "adv20")
+    delayed_vwap = _tmp("alpha047", "delay_vwap")
+    high_mean_5 = _tmp("alpha047", "mean_high_5")
+    ranked_inverse_close = _tmp("alpha047", "rank_inverse_close")
+    ranked_high_close = _tmp("alpha047", "rank_high_close")
+    ranked_vwap_delta = _tmp("alpha047", "rank_vwap_delta")
+    return AlphaFactor(
+        name="alpha047",
+        stages=(
+            (
+                ts_mean(schema.VOLUME, 20).alias(adv20),
+                delay(schema.VWAP, 5).alias(delayed_vwap),
+                (ts_sum(schema.HIGH, 5) / 5).alias(high_mean_5),
+            ),
+            (
+                rank(1 / pl.col(schema.CLOSE)).alias(ranked_inverse_close),
+                rank(pl.col(schema.HIGH) - pl.col(schema.CLOSE)).alias(ranked_high_close),
+                rank(pl.col(schema.VWAP) - pl.col(delayed_vwap)).alias(ranked_vwap_delta),
+            ),
+        ),
+        expr=(
+            (
+                (pl.col(ranked_inverse_close) * pl.col(schema.VOLUME) / pl.col(adv20))
+                * ((pl.col(schema.HIGH) * pl.col(ranked_high_close)) / pl.col(high_mean_5))
+            )
+            - pl.col(ranked_vwap_delta)
+        ),
+        temporary_columns=(
+            adv20,
+            delayed_vwap,
+            high_mean_5,
+            ranked_inverse_close,
+            ranked_high_close,
+            ranked_vwap_delta,
+        ),
+    )
+
+
+def alpha048() -> AlphaFactor:
+    # Requires industry neutralization metadata; not registered until the schema supports it.
+    close_delta = _tmp("alpha048", "delta_close")
+    delayed_close = _tmp("alpha048", "delay_close")
+    delayed_close_delta = _tmp("alpha048", "delta_delay_close")
+    corr = _tmp("alpha048", "corr")
+    denominator = _tmp("alpha048", "denominator")
+    return AlphaFactor(
+        name="alpha048",
+        stages=(
+            (
+                delta(schema.CLOSE, 1).alias(close_delta),
+                delay(schema.CLOSE, 1).alias(delayed_close),
+            ),
+            (delta(delayed_close, 1).alias(delayed_close_delta),),
+            (
+                ts_corr(close_delta, delayed_close_delta, 250).alias(corr),
+                ts_sum((pl.col(close_delta) / pl.col(delayed_close)).pow(2), 250).alias(denominator),
+            ),
+        ),
+        expr=((pl.col(corr) * pl.col(close_delta)) / pl.col(schema.CLOSE)) / pl.col(denominator),
+        temporary_columns=(close_delta, delayed_close, delayed_close_delta, corr, denominator),
+    )
+
+
+def alpha049() -> AlphaFactor:
+    delay_1 = _tmp("alpha049", "delay_close_1")
+    delay_10 = _tmp("alpha049", "delay_close_10")
+    delay_20 = _tmp("alpha049", "delay_close_20")
+    trend = _tmp("alpha049", "trend")
+    return AlphaFactor(
+        name="alpha049",
+        stages=(
+            (
+                delay(schema.CLOSE, 1).alias(delay_1),
+                delay(schema.CLOSE, 10).alias(delay_10),
+                delay(schema.CLOSE, 20).alias(delay_20),
+            ),
+            (
+                (
+                    ((pl.col(delay_20) - pl.col(delay_10)) / 10)
+                    - ((pl.col(delay_10) - pl.col(schema.CLOSE)) / 10)
+                ).alias(trend),
+            ),
+        ),
+        expr=pl.when(pl.col(trend) < -0.1)
+        .then(1)
+        .otherwise(-(pl.col(schema.CLOSE) - pl.col(delay_1))),
+        temporary_columns=(delay_1, delay_10, delay_20, trend),
+    )
+
+
+def alpha050() -> AlphaFactor:
+    ranked_volume = _tmp("alpha050", "rank_volume")
+    ranked_vwap = _tmp("alpha050", "rank_vwap")
+    corr = _tmp("alpha050", "corr")
+    ranked_corr = _tmp("alpha050", "rank_corr")
+    max_ranked_corr = _tmp("alpha050", "max_rank_corr")
+    return AlphaFactor(
+        name="alpha050",
+        stages=(
+            (rank(schema.VOLUME).alias(ranked_volume), rank(schema.VWAP).alias(ranked_vwap)),
+            (ts_corr(ranked_volume, ranked_vwap, 5).alias(corr),),
+            (rank(corr).alias(ranked_corr),),
+            (ts_max(ranked_corr, 5).alias(max_ranked_corr),),
+        ),
+        expr=-pl.col(max_ranked_corr),
+        temporary_columns=(ranked_volume, ranked_vwap, corr, ranked_corr, max_ranked_corr),
+    )
+
+
+def alpha051() -> AlphaFactor:
+    delay_1 = _tmp("alpha051", "delay_close_1")
+    delay_10 = _tmp("alpha051", "delay_close_10")
+    delay_20 = _tmp("alpha051", "delay_close_20")
+    trend = _tmp("alpha051", "trend")
+    return AlphaFactor(
+        name="alpha051",
+        stages=(
+            (
+                delay(schema.CLOSE, 1).alias(delay_1),
+                delay(schema.CLOSE, 10).alias(delay_10),
+                delay(schema.CLOSE, 20).alias(delay_20),
+            ),
+            (
+                (
+                    ((pl.col(delay_20) - pl.col(delay_10)) / 10)
+                    - ((pl.col(delay_10) - pl.col(schema.CLOSE)) / 10)
+                ).alias(trend),
+            ),
+        ),
+        expr=pl.when(pl.col(trend) < -0.05)
+        .then(1)
+        .otherwise(-(pl.col(schema.CLOSE) - pl.col(delay_1))),
+        temporary_columns=(delay_1, delay_10, delay_20, trend),
+    )
+
+
+def alpha052() -> AlphaFactor:
+    low_min = _tmp("alpha052", "min_low")
+    delayed_low_min = _tmp("alpha052", "delay_min_low")
+    returns_sum_20 = _tmp("alpha052", "sum_returns_20")
+    returns_sum_240 = _tmp("alpha052", "sum_returns_240")
+    returns_diff_mean = _tmp("alpha052", "returns_diff_mean")
+    ranked_returns_diff_mean = _tmp("alpha052", "rank_returns_diff_mean")
+    volume_ts_rank = _tmp("alpha052", "ts_rank_volume")
+    return AlphaFactor(
+        name="alpha052",
+        stages=(
+            (
+                ts_min(schema.LOW, 5).alias(low_min),
+                ts_sum(schema.RETURNS, 20).alias(returns_sum_20),
+                ts_sum(schema.RETURNS, 240).alias(returns_sum_240),
+                ts_rank(schema.VOLUME, 5).alias(volume_ts_rank),
+            ),
+            (
+                delay(low_min, 5).alias(delayed_low_min),
+                ((pl.col(returns_sum_240) - pl.col(returns_sum_20)) / 220).alias(returns_diff_mean),
+            ),
+            (rank(returns_diff_mean).alias(ranked_returns_diff_mean),),
+        ),
+        expr=(
+            ((-pl.col(low_min)) + pl.col(delayed_low_min))
+            * pl.col(ranked_returns_diff_mean)
+            * pl.col(volume_ts_rank)
+        ),
+        temporary_columns=(
+            low_min,
+            delayed_low_min,
+            returns_sum_20,
+            returns_sum_240,
+            returns_diff_mean,
+            ranked_returns_diff_mean,
+            volume_ts_rank,
+        ),
+    )
+
+
+def alpha053() -> AlphaFactor:
+    value = _tmp("alpha053", "value")
+    raw_value = (
+        ((pl.col(schema.CLOSE) - pl.col(schema.LOW)) - (pl.col(schema.HIGH) - pl.col(schema.CLOSE)))
+        / (pl.col(schema.CLOSE) - pl.col(schema.LOW))
+    )
+    return AlphaFactor(
+        name="alpha053",
+        stages=(
+            (
+                pl.when(raw_value.is_finite()).then(raw_value).otherwise(None).alias(value),
+            ),
+        ),
+        expr=-delta(value, 9),
+        temporary_columns=(value,),
+    )
+
+
+def alpha054() -> AlphaFactor:
+    raw_value = (
+        (-(pl.col(schema.LOW) - pl.col(schema.CLOSE)) * pl.col(schema.OPEN).pow(5))
+        / ((pl.col(schema.LOW) - pl.col(schema.HIGH)) * pl.col(schema.CLOSE).pow(5))
+    )
+    return AlphaFactor(
+        name="alpha054",
+        stages=(),
+        expr=pl.when(raw_value.is_finite()).then(raw_value).otherwise(None),
+    )
+
+
+def alpha055() -> AlphaFactor:
+    low_min = _tmp("alpha055", "min_low")
+    high_max = _tmp("alpha055", "max_high")
+    price_position = _tmp("alpha055", "price_position")
+    ranked_price_position = _tmp("alpha055", "rank_price_position")
+    ranked_volume = _tmp("alpha055", "rank_volume")
+    return AlphaFactor(
+        name="alpha055",
+        stages=(
+            (
+                ts_min(schema.LOW, 12).alias(low_min),
+                ts_max(schema.HIGH, 12).alias(high_max),
+            ),
+            (
+                (
+                    (pl.col(schema.CLOSE) - pl.col(low_min))
+                    / (pl.col(high_max) - pl.col(low_min))
+                ).alias(price_position),
+            ),
+            (
+                rank(price_position).alias(ranked_price_position),
+                rank(schema.VOLUME).alias(ranked_volume),
+            ),
+        ),
+        expr=-ts_corr(ranked_price_position, ranked_volume, 6),
+        temporary_columns=(low_min, high_max, price_position, ranked_price_position, ranked_volume),
+    )
+
+
+def alpha056() -> AlphaFactor:
+    # Requires market-cap data; not registered until the schema supports it.
+    returns_sum_2 = _tmp("alpha056", "sum_returns_2")
+    nested_returns_sum = _tmp("alpha056", "sum_sum_returns")
+    returns_sum_10 = _tmp("alpha056", "sum_returns_10")
+    returns_ratio = _tmp("alpha056", "returns_ratio")
+    ranked_returns_ratio = _tmp("alpha056", "rank_returns_ratio")
+    cap_value = _tmp("alpha056", "cap_value")
+    ranked_cap_value = _tmp("alpha056", "rank_cap_value")
+    return AlphaFactor(
+        name="alpha056",
+        stages=(
+            (
+                ts_sum(schema.RETURNS, 2).alias(returns_sum_2),
+                ts_sum(schema.RETURNS, 10).alias(returns_sum_10),
+                (pl.col(schema.RETURNS) * pl.col("cap")).alias(cap_value),
+            ),
+            (ts_sum(returns_sum_2, 3).alias(nested_returns_sum),),
+            ((pl.col(returns_sum_10) / pl.col(nested_returns_sum)).alias(returns_ratio),),
+            (
+                rank(returns_ratio).alias(ranked_returns_ratio),
+                rank(cap_value).alias(ranked_cap_value),
+            ),
+        ),
+        expr=-(pl.col(ranked_returns_ratio) * pl.col(ranked_cap_value)),
+        temporary_columns=(
+            returns_sum_2,
+            nested_returns_sum,
+            returns_sum_10,
+            returns_ratio,
+            ranked_returns_ratio,
+            cap_value,
+            ranked_cap_value,
+        ),
+    )
+
+
+def alpha057() -> AlphaFactor:
+    arg_max = _tmp("alpha057", "arg_max_close")
+    ranked_arg_max = _tmp("alpha057", "rank_arg_max_close")
+    decayed_rank = _tmp("alpha057", "decay_rank_arg_max")
+    return AlphaFactor(
+        name="alpha057",
+        stages=(
+            (ts_arg_max(schema.CLOSE, 30).alias(arg_max),),
+            (rank(arg_max).alias(ranked_arg_max),),
+            (decay_linear(ranked_arg_max, 2).alias(decayed_rank),),
+        ),
+        expr=-((pl.col(schema.CLOSE) - pl.col(schema.VWAP)) / pl.col(decayed_rank)),
+        temporary_columns=(arg_max, ranked_arg_max, decayed_rank),
+    )
+
+
+def alpha058() -> AlphaFactor:
+    # Requires sector neutralization metadata; not registered until the schema supports it.
+    corr = _tmp("alpha058", "corr")
+    decayed_corr = _tmp("alpha058", "decay_corr")
+    ranked_decayed_corr = _tmp("alpha058", "ts_rank_decay_corr")
+    return AlphaFactor(
+        name="alpha058",
+        stages=(
+            (ts_corr(schema.VWAP, schema.VOLUME, 4).alias(corr),),
+            (decay_linear(corr, 8).alias(decayed_corr),),
+            (ts_rank(decayed_corr, 6).alias(ranked_decayed_corr),),
+        ),
+        expr=-pl.col(ranked_decayed_corr),
+        temporary_columns=(corr, decayed_corr, ranked_decayed_corr),
+    )
+
+
+def alpha059() -> AlphaFactor:
+    # Requires industry neutralization metadata; not registered until the schema supports it.
+    corr = _tmp("alpha059", "corr")
+    decayed_corr = _tmp("alpha059", "decay_corr")
+    ranked_decayed_corr = _tmp("alpha059", "ts_rank_decay_corr")
+    return AlphaFactor(
+        name="alpha059",
+        stages=(
+            (ts_corr(schema.VWAP, schema.VOLUME, 4).alias(corr),),
+            (decay_linear(corr, 16).alias(decayed_corr),),
+            (ts_rank(decayed_corr, 8).alias(ranked_decayed_corr),),
+        ),
+        expr=-pl.col(ranked_decayed_corr),
+        temporary_columns=(corr, decayed_corr, ranked_decayed_corr),
+    )
+
+
+def alpha060() -> AlphaFactor:
+    price_volume = _tmp("alpha060", "price_volume")
+    ranked_price_volume = _tmp("alpha060", "rank_price_volume")
+    scaled_ranked_price_volume = _tmp("alpha060", "scale_rank_price_volume")
+    arg_max = _tmp("alpha060", "arg_max_close")
+    ranked_arg_max = _tmp("alpha060", "rank_arg_max_close")
+    scaled_ranked_arg_max = _tmp("alpha060", "scale_rank_arg_max")
+    return AlphaFactor(
+        name="alpha060",
+        stages=(
+            (
+                (
+                    (
+                        ((pl.col(schema.CLOSE) - pl.col(schema.LOW)) - (pl.col(schema.HIGH) - pl.col(schema.CLOSE)))
+                        / (pl.col(schema.HIGH) - pl.col(schema.LOW))
+                    )
+                    * pl.col(schema.VOLUME)
+                ).alias(price_volume),
+                ts_arg_max(schema.CLOSE, 10).alias(arg_max),
+            ),
+            (
+                rank(price_volume).alias(ranked_price_volume),
+                rank(arg_max).alias(ranked_arg_max),
+            ),
+            (
+                scale(ranked_price_volume).alias(scaled_ranked_price_volume),
+                scale(ranked_arg_max).alias(scaled_ranked_arg_max),
+            ),
+        ),
+        expr=-(2 * pl.col(scaled_ranked_price_volume) - pl.col(scaled_ranked_arg_max)),
+        temporary_columns=(
+            price_volume,
+            ranked_price_volume,
+            scaled_ranked_price_volume,
+            arg_max,
+            ranked_arg_max,
+            scaled_ranked_arg_max,
+        ),
+    )
+
+
 ALPHA_FACTORS = {
     "alpha001": alpha001,
     "alpha002": alpha002,
@@ -1130,4 +1626,20 @@ ALPHA_FACTORS = {
     "alpha038": alpha038,
     "alpha039": alpha039,
     "alpha040": alpha040,
+    "alpha041": alpha041,
+    "alpha042": alpha042,
+    "alpha043": alpha043,
+    "alpha044": alpha044,
+    "alpha045": alpha045,
+    "alpha046": alpha046,
+    "alpha047": alpha047,
+    "alpha049": alpha049,
+    "alpha050": alpha050,
+    "alpha051": alpha051,
+    "alpha052": alpha052,
+    "alpha053": alpha053,
+    "alpha054": alpha054,
+    "alpha055": alpha055,
+    "alpha057": alpha057,
+    "alpha060": alpha060,
 }

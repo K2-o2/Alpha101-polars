@@ -65,8 +65,13 @@ def test_compute_all_registered_alphas() -> None:
     assert set(alpha_names()).issubset(result.columns)
 
 
-def test_alpha001_through_alpha040_are_registered() -> None:
-    assert alpha_names() == [f"alpha{i:03d}" for i in range(1, 41)]
+def supported_alpha_names() -> list[str]:
+    unsupported = {48, 56, 58, 59}
+    return [f"alpha{i:03d}" for i in range(1, 61) if i not in unsupported]
+
+
+def test_supported_alpha001_through_alpha060_are_registered() -> None:
+    assert alpha_names() == supported_alpha_names()
 
 
 def test_alpha021_through_alpha030_compute_without_non_finite_values() -> None:
@@ -81,6 +86,26 @@ def test_alpha021_through_alpha030_compute_without_non_finite_values() -> None:
 
 def test_alpha031_through_alpha040_compute_without_non_finite_values() -> None:
     names = [f"alpha{i:03d}" for i in range(31, 41)]
+    result = compute_alphas(long_sample_frame(), names=names)
+
+    assert set(names).issubset(result.columns)
+    assert not any(column.startswith("__alpha") for column in result.columns)
+    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (0,) * len(names)
+    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(0) == (0,) * len(names)
+
+
+def test_alpha041_through_alpha050_compute_without_non_finite_values() -> None:
+    names = [f"alpha{i:03d}" for i in range(41, 51) if i != 48]
+    result = compute_alphas(long_sample_frame(), names=names)
+
+    assert set(names).issubset(result.columns)
+    assert not any(column.startswith("__alpha") for column in result.columns)
+    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (0,) * len(names)
+    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(0) == (0,) * len(names)
+
+
+def test_alpha051_through_alpha060_compute_without_non_finite_values() -> None:
+    names = [f"alpha{i:03d}" for i in range(51, 61) if i not in {56, 58, 59}]
     result = compute_alphas(long_sample_frame(), names=names)
 
     assert set(names).issubset(result.columns)
