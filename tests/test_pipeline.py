@@ -3,7 +3,31 @@ from datetime import date, timedelta
 import polars as pl
 import pytest
 
+import alpha101
 from alpha101 import alpha_names, compute_alphas
+
+
+UNSUPPORTED_ALPHA_NUMBERS = {
+    48,
+    56,
+    58,
+    59,
+    63,
+    67,
+    69,
+    70,
+    76,
+    79,
+    80,
+    82,
+    87,
+    89,
+    90,
+    91,
+    93,
+    97,
+    100,
+}
 
 
 def sample_frame() -> pl.DataFrame:
@@ -66,12 +90,20 @@ def test_compute_all_registered_alphas() -> None:
 
 
 def supported_alpha_names() -> list[str]:
-    unsupported = {48, 56, 58, 59}
-    return [f"alpha{i:03d}" for i in range(1, 61) if i not in unsupported]
+    return [f"alpha{i:03d}" for i in range(1, 102) if i not in UNSUPPORTED_ALPHA_NUMBERS]
 
 
-def test_supported_alpha001_through_alpha060_are_registered() -> None:
+def test_supported_alpha001_through_alpha101_are_registered() -> None:
     assert alpha_names() == supported_alpha_names()
+
+
+def test_unsupported_alpha_functions_are_not_registered_and_raise() -> None:
+    for number in sorted(UNSUPPORTED_ALPHA_NUMBERS):
+        name = f"alpha{number:03d}"
+
+        assert name not in alpha_names()
+        with pytest.raises(NotImplementedError):
+            getattr(alpha101, name)()
 
 
 def test_alpha021_through_alpha030_compute_without_non_finite_values() -> None:
@@ -105,7 +137,17 @@ def test_alpha041_through_alpha050_compute_without_non_finite_values() -> None:
 
 
 def test_alpha051_through_alpha060_compute_without_non_finite_values() -> None:
-    names = [f"alpha{i:03d}" for i in range(51, 61) if i not in {56, 58, 59}]
+    names = [f"alpha{i:03d}" for i in range(51, 61) if i not in UNSUPPORTED_ALPHA_NUMBERS]
+    result = compute_alphas(long_sample_frame(), names=names)
+
+    assert set(names).issubset(result.columns)
+    assert not any(column.startswith("__alpha") for column in result.columns)
+    assert result.select([pl.col(name).is_nan().sum() for name in names]).row(0) == (0,) * len(names)
+    assert result.select([pl.col(name).is_infinite().sum() for name in names]).row(0) == (0,) * len(names)
+
+
+def test_alpha061_through_alpha101_compute_without_non_finite_values() -> None:
+    names = [f"alpha{i:03d}" for i in range(61, 102) if i not in UNSUPPORTED_ALPHA_NUMBERS]
     result = compute_alphas(long_sample_frame(), names=names)
 
     assert set(names).issubset(result.columns)

@@ -9,10 +9,13 @@ operators such as `correlation(x, y, d)` are evaluated per `symbol`.
 ## Status
 
 This repository currently contains the project skeleton, common Alpha101
-operators, AkShare data utilities, and supported factors through Alpha#60:
+operators, AkShare data utilities, and supported factors through Alpha#101:
 
 ```text
-alpha001-alpha060, excluding alpha048, alpha056, alpha058, alpha059
+alpha001-alpha101, excluding:
+alpha048, alpha056, alpha058, alpha059, alpha063, alpha067, alpha069,
+alpha070, alpha076, alpha079, alpha080, alpha082, alpha087, alpha089,
+alpha090, alpha091, alpha093, alpha097, alpha100
 ```
 
 More formulas can be added incrementally on top of the shared operators.
