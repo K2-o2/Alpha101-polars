@@ -1,5 +1,7 @@
 # Alpha101-polars
 
+English | [中文](README_CN.md)
+
 Polars-native implementations of representative WorldQuant Alpha101 factors.
 
 The project is designed around staged `polars.Expr` pipelines. Cross-sectional
